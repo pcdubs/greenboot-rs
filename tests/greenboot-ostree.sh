@@ -326,7 +326,7 @@ name = "sssd"
 version = "*"
 
 [customizations.services]
-enabled = ["greenboot-set-rollback-trigger.service", "greenboot-success.target"]
+enabled = ["greenboot-set-rollback-trigger.service"]
 
 [[customizations.user]]
 name = "${SSH_USER}"
