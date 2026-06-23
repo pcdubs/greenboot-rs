@@ -37,35 +37,35 @@ case "${ID}-${VERSION_ID}" in
         BASE_IMAGE_URL="quay.io/fedora/fedora-bootc:43"
         BIB_URL="quay.io/centos-bootc/bootc-image-builder:latest"
         BOOT_ARGS="uefi"
-        sudo dnf install -y rpmbuild rust-packaging
+        sudo dnf install -y git make rpm-build rust-toolset
         ;;
     "fedora-44")
         OS_VARIANT="fedora-unknown"
         BASE_IMAGE_URL="quay.io/fedora/fedora-bootc:44"
         BIB_URL="quay.io/centos-bootc/bootc-image-builder:latest"
         BOOT_ARGS="uefi"
-        sudo dnf install -y rpmbuild rust-packaging
+        sudo dnf install -y git make rpm-build rust-toolset
         ;;
     "fedora-45")
         OS_VARIANT="fedora-rawhide"
         BASE_IMAGE_URL="quay.io/fedora/fedora-bootc:rawhide"
         BIB_URL="quay.io/centos-bootc/bootc-image-builder:latest"
         BOOT_ARGS="uefi"
-        sudo dnf install -y rpmbuild rust-packaging
+        sudo dnf install -y git make rpm-build rust-toolset
         ;;
     "centos-10")
         OS_VARIANT="centos-stream9"
         BASE_IMAGE_URL="quay.io/centos-bootc/centos-bootc:stream10"
         BIB_URL="quay.io/centos-bootc/bootc-image-builder:latest"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
-        sudo dnf install -y make rpm-build rust-toolset
+        sudo dnf install -y git make rpm-build rust-toolset
         ;;
     "rhel-9.8")
         OS_VARIANT="rhel9-unknown"
         BASE_IMAGE_URL="registry.stage.redhat.io/rhel9/rhel-bootc:9.8"
         BIB_URL="registry.stage.redhat.io/rhel9/bootc-image-builder:9.8"
         BOOT_ARGS="uefi"
-        sudo dnf install -y make rpm-build rust-toolset
+        sudo dnf install -y git make rpm-build rust-toolset
         sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-8.repo
         ;;
     "rhel-10.2")
@@ -73,7 +73,7 @@ case "${ID}-${VERSION_ID}" in
         BASE_IMAGE_URL="registry.stage.redhat.io/rhel10/rhel-bootc:10.2"
         BIB_URL="registry.stage.redhat.io/rhel10/bootc-image-builder:10.2"
         BOOT_ARGS="uefi"
-        sudo dnf install -y make rpm-build rust-toolset
+        sudo dnf install -y git make rpm-build rust-toolset
         sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-10-2.repo
         ;;
     *)
