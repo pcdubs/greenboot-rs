@@ -50,17 +50,16 @@ jobs:
 
     steps:
       - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@270f0d1d89dad513588fb5cc2cdd512c3459f3fe # v3.1.2
+        uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1 # v4.3.1
         with:
           compose: CentOS-Stream-10
-          api_key: ${{ secrets.TF_API_KEY }}
+          api_key: ${{ secrets.TF_API_PUB_KEY }}
           git_url: ${{ needs.check-pull-request.outputs.repo_url }}
           git_ref: ${{ needs.check-pull-request.outputs.ref }}
           update_pull_request_status: true
           pull_request_status_name: centos-10-bootc
           tmt_context: "arch=x86_64;distro=cs-10"
           tmt_plan_regex: bootc
-          tf_scope: private
           variables: "ARCH=x86_64"
           timeout: 90
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
@@ -75,17 +74,16 @@ jobs:
 
     steps:
       - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@270f0d1d89dad513588fb5cc2cdd512c3459f3fe # v3.1.2
+        uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1 # v4.3.1
         with:
           compose: Fedora-44
-          api_key: ${{ secrets.TF_API_KEY }}
+          api_key: ${{ secrets.TF_API_PUB_KEY }}
           git_url: ${{ needs.check-pull-request.outputs.repo_url }}
           git_ref: ${{ needs.check-pull-request.outputs.ref }}
           update_pull_request_status: true
           pull_request_status_name: fedora-44-bootc
           tmt_context: "arch=x86_64;distro=fedora-44"
           tmt_plan_regex: bootc
-          tf_scope: private
           variables: "ARCH=x86_64"
           timeout: 90
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
@@ -100,17 +98,16 @@ jobs:
 
     steps:
       - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@270f0d1d89dad513588fb5cc2cdd512c3459f3fe # v3.1.2
+        uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1 # v4.3.1
         with:
           compose: Fedora-Rawhide
-          api_key: ${{ secrets.TF_API_KEY }}
+          api_key: ${{ secrets.TF_API_PUB_KEY }}
           git_url: ${{ needs.check-pull-request.outputs.repo_url }}
           git_ref: ${{ needs.check-pull-request.outputs.ref }}
           update_pull_request_status: true
           pull_request_status_name: fedora-45-bootc
           tmt_context: "arch=x86_64;distro=fedora-45"
           tmt_plan_regex: bootc
-          tf_scope: private
           variables: "ARCH=x86_64"
           timeout: 90
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
@@ -125,17 +122,16 @@ jobs:
 
     steps:
       - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@270f0d1d89dad513588fb5cc2cdd512c3459f3fe # v3.1.2
+        uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1 # v4.3.1
         with:
           compose: CentOS-Stream-9
-          api_key: ${{ secrets.TF_API_KEY }}
+          api_key: ${{ secrets.TF_API_PUB_KEY }}
           git_url: ${{ needs.check-pull-request.outputs.repo_url }}
           git_ref: ${{ needs.check-pull-request.outputs.ref }}
           update_pull_request_status: true
           pull_request_status_name: centos-9-ostree
           tmt_context: "arch=x86_64;distro=cs-9"
           tmt_plan_regex: ostree
-          tf_scope: private
           variables: "ARCH=x86_64"
           timeout: 90
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
@@ -150,7 +146,7 @@ jobs:
 
     steps:
       - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@270f0d1d89dad513588fb5cc2cdd512c3459f3fe # v3.1.2
+        uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1 # v4.3.1
         with:
           compose: RHEL-9.8.0-Nightly
           api_key: ${{ secrets.TF_API_KEY }}
@@ -160,7 +156,6 @@ jobs:
           pull_request_status_name: rhel-9.8-ostree
           tmt_context: "arch=x86_64;distro=rhel-9-8"
           tmt_plan_regex: ostree
-          tf_scope: private
           variables: "ARCH=x86_64"
           timeout: 90
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
@@ -175,7 +170,7 @@ jobs:
 
     steps:
       - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@270f0d1d89dad513588fb5cc2cdd512c3459f3fe # v3.1.2
+        uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1 # v4.3.1
         with:
           compose: RHEL-10.2-Nightly
           api_key: ${{ secrets.TF_API_KEY }}
@@ -185,7 +180,6 @@ jobs:
           pull_request_status_name: rhel-10.2-bootc
           tmt_context: "arch=x86_64;distro=rhel-10-2"
           tmt_plan_regex: bootc
-          tf_scope: private
           variables: "ARCH=x86_64"
           timeout: 90
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
