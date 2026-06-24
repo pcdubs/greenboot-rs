@@ -42,8 +42,12 @@ jobs:
   trigger: pull_request
   update_release: true
   targets:
+  - centos-stream-9-aarch64
+  - centos-stream-9-x86_64
   - centos-stream-10-aarch64
   - centos-stream-10-x86_64
+  - fedora-44-aarch64
+  - fedora-44-x86_64
   - fedora-development-aarch64
   - fedora-development
   - fedora-eln-aarch64
