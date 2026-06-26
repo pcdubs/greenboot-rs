@@ -41,7 +41,6 @@ TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-${TEST_UUID}"
 GUEST_ADDRESS=192.168.100.50
 SSH_USER="admin"
-OS_NAME="rhel-edge"
 IMAGE_TYPE=edge-commit
 PROD_REPO_URL=http://192.168.100.1/repo
 CONSOLE_LOG=/tmp/vm-console.log
@@ -82,8 +81,17 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
+    "fedora-"*)
+        OSTREE_REF="fedora/${VERSION_ID}/${ARCH}/iot"
+        OS_NAME="fedora-iot"
+        IMAGE_TYPE=iot-commit
+        OS_VARIANT="fedora-unknown"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/${VERSION_ID}/Everything/${ARCH}/os/"
+        COPR_REPO_URL="https://download.copr.fedorainfracloud.org/results/packit/fedora-iot-greenboot-rs-${PR_NUMBER}/fedora-${VERSION_ID}-${ARCH}/"
+        ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
+        OS_NAME="rhel-edge"
         OS_VARIANT="centos-stream9"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         CURRENT_COMPOSE_CS9=$(curl -s "https://composes.stream.centos.org/production/" | grep -ioE ">CentOS-Stream-9-.*/<" | tr -d '>/<' | tail -1)
@@ -92,6 +100,7 @@ case "${ID}-${VERSION_ID}" in
         sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
     "rhel-9.8")
         OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_NAME="rhel-edge"
         OS_VARIANT="rhel9-unknown"
         BOOT_ARGS="uefi"
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.8.0/compose/BaseOS/${ARCH}/os/"
