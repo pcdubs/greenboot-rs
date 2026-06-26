@@ -40,35 +40,30 @@ case "${ID}-${VERSION_ID}" in
         BASE_IMAGE_URL="quay.io/fedora/fedora-bootc:43"
         BIB_URL="quay.io/centos-bootc/bootc-image-builder:latest"
         BOOT_ARGS="uefi"
-        sudo dnf install -y git make rpm-build rust-toolset
         ;;
     "fedora-44")
         OS_VARIANT="fedora-unknown"
         BASE_IMAGE_URL="quay.io/fedora/fedora-bootc:44"
         BIB_URL="quay.io/centos-bootc/bootc-image-builder:latest"
         BOOT_ARGS="uefi"
-        sudo dnf install -y git make rpm-build rust-toolset
         ;;
     "fedora-45")
         OS_VARIANT="fedora-rawhide"
         BASE_IMAGE_URL="quay.io/fedora/fedora-bootc:rawhide"
         BIB_URL="quay.io/centos-bootc/bootc-image-builder:latest"
         BOOT_ARGS="uefi"
-        sudo dnf install -y git make rpm-build rust-toolset
         ;;
     "centos-10")
         OS_VARIANT="centos-stream9"
         BASE_IMAGE_URL="quay.io/centos-bootc/centos-bootc:stream10"
         BIB_URL="quay.io/centos-bootc/bootc-image-builder:latest"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
-        sudo dnf install -y git make rpm-build rust-toolset
         ;;
     "rhel-9.8")
         OS_VARIANT="rhel9-unknown"
         BASE_IMAGE_URL="registry.stage.redhat.io/rhel9/rhel-bootc:9.8"
         BIB_URL="registry.stage.redhat.io/rhel9/bootc-image-builder:9.8"
         BOOT_ARGS="uefi"
-        sudo dnf install -y git make rpm-build rust-toolset
         sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-8.repo
         ;;
     "rhel-10.2")
@@ -76,7 +71,6 @@ case "${ID}-${VERSION_ID}" in
         BASE_IMAGE_URL="registry.stage.redhat.io/rhel10/rhel-bootc:10.2"
         BIB_URL="registry.stage.redhat.io/rhel10/bootc-image-builder:10.2"
         BOOT_ARGS="uefi"
-        sudo dnf install -y git make rpm-build rust-toolset
         sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-10-2.repo
         ;;
     *)
@@ -115,7 +109,7 @@ wait_for_ssh_up () {
 ##
 ###########################################################
 greenprint "Installing required packages"
-sudo dnf install -y podman qemu-img firewalld qemu-kvm libvirt-client libvirt-daemon-kvm libvirt-daemon virt-install rpmdevtools ansible-core cargo lorax gobject-introspection
+sudo dnf install -y podman qemu-img firewalld qemu-kvm libvirt-client libvirt-daemon-kvm libvirt-daemon virt-install ansible-core lorax gobject-introspection
 ansible-galaxy collection install community.general
 
 # Start firewalld
@@ -177,13 +171,11 @@ fi
 
 ###########################################################
 ##
-## Build greenboot rpm packages
+## Copy test assets
 ##
 ###########################################################
-greenprint "Building greenboot packages"
+greenprint "Copying test assets"
 pushd .. && \
-make rpm
-cp rpmbuild/RPMS/"${ARCH}"/*.rpm tests/
 cp testing_assets/passing_script.sh tests/
 cp testing_assets/passing_binary."${ARCH}" tests/passing_binary
 cp testing_assets/failing_script.sh tests/
@@ -199,10 +191,9 @@ podman login quay.io -u ${QUAY_USERNAME} -p ${QUAY_PASSWORD}
 podman login registry.stage.redhat.io -u ${STAGE_REDHAT_IO_USERNAME} -p ${STAGE_REDHAT_IO_TOKEN}
 tee Containerfile > /dev/null << EOF
 FROM ${BASE_IMAGE_URL}
-# Copy the local RPM files into the container
-COPY greenboot-*.rpm /tmp/
-RUN dnf install -y \
-    /tmp/greenboot-*.rpm && \
+RUN dnf install -y 'dnf-command(copr)' && \
+    dnf copr enable -y packit/fedora-iot-greenboot-rs-${PR_NUMBER} && \
+    dnf install -y greenboot greenboot-default-health-checks && \
     systemctl enable greenboot-healthcheck.service
 RUN sed -i "s/GREENBOOT_MAX_BOOT_ATTEMPTS=3/GREENBOOT_MAX_BOOT_ATTEMPTS=5/g" /etc/greenboot/greenboot.conf
 RUN sed -i 's#DISABLED_HEALTHCHECKS=()#DISABLED_HEALTHCHECKS=("01_repository_dns_check.sh" "not_exit.sh")#g' /etc/greenboot/greenboot.conf
@@ -219,8 +210,6 @@ COPY failing_script.sh /etc/greenboot/red.d
 
 COPY passing_binary /etc/greenboot/check/required.d/
 COPY failing_binary /etc/greenboot/check/wanted.d/
-# Clean up by removing the local RPMs if desired
-RUN rm -f /tmp/greenboot-*.rpm
 EOF
 
 if [[ "${ID}-${VERSION_ID}" == "rhel-9.8" ]]; then

@@ -65,7 +65,7 @@ sudo localectl set-locale LANG=en_US.UTF-8
 
 # Install required packages
 greenprint "Install required packages"
-sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli ansible-core createrepo_c podman qemu-img firewalld qemu-kvm libvirt-client libvirt-daemon-kvm libvirt-daemon virt-install rpmdevtools cargo lorax gobject-introspection git make rpm-build rust-toolset
+sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli ansible-core podman qemu-img firewalld qemu-kvm libvirt-client libvirt-daemon-kvm libvirt-daemon virt-install lorax gobject-introspection
 
 # Avoid collection installation filed sometime
 for _ in $(seq 0 30); do
@@ -88,26 +88,35 @@ case "${ID}-${VERSION_ID}" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         CURRENT_COMPOSE_CS9=$(curl -s "https://composes.stream.centos.org/production/" | grep -ioE ">CentOS-Stream-9-.*/<" | tr -d '>/<' | tail -1)
         BOOT_LOCATION="https://composes.stream.centos.org/production/${CURRENT_COMPOSE_CS9}/compose/BaseOS/${ARCH}/os/"
+        COPR_REPO_URL="https://download.copr.fedorainfracloud.org/results/packit/fedora-iot-greenboot-rs-${PR_NUMBER}/centos-stream-9-${ARCH}/"
         sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
     "rhel-9.8")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         BOOT_ARGS="uefi"
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.8.0/compose/BaseOS/${ARCH}/os/"
+        COPR_REPO_URL="https://download.copr.fedorainfracloud.org/results/packit/fedora-iot-greenboot-rs-${PR_NUMBER}/centos-stream-9-${ARCH}/"
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-8-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-98.json > /dev/null;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
 esac
 
-# Build greenboot RPMs
-greenprint "Building greenboot packages"
-pushd .. && \
-make rpm
-mkdir -p /var/www/html/packages
-cp rpmbuild/RPMS/"${ARCH}"/*.rpm /var/www/html/packages/
-sudo createrepo_c /var/www/html/packages
-sudo restorecon -Rv /var/www/html/packages && popd
+# Add Copr repo as osbuild-composer source for greenboot PR builds
+greenprint "Adding Copr source for greenboot PR #${PR_NUMBER}"
+sudo tee /tmp/greenboot-copr.toml > /dev/null << EOF
+id = "greenboot-copr"
+name = "Packit Copr greenboot PR build"
+type = "yum-baseurl"
+url = "${COPR_REPO_URL}"
+check_gpg = false
+check_ssl = false
+EOF
+for _ in $(seq 0 30); do
+    sudo composer-cli sources add /tmp/greenboot-copr.toml && break
+    greenprint "Copr source not ready yet, retrying in 30s..."
+    sleep 30
+done
 
 # Check ostree_key permissions
 KEY_PERMISSION_PRE=$(stat -L -c "%a %G %U" key/ostree_key | grep -oP '\d+' | head -n 1)
