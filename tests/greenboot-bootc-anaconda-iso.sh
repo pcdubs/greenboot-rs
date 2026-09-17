@@ -285,6 +285,17 @@ tee Containerfile > /dev/null << EOF
 FROM ${BASE_IMAGE_URL}
 EOF
 
+# Fedora 45+ relocated vendor repo configs from /etc/yum.repos.d to
+# /usr/share/dnf5/repos.d (F45 "Relocate RPM Repo Configs to /usr" change).
+# The system dnf5 binary already knows to read both locations, but
+# bootc-image-builder's own depsolve engine only looks in the classic
+# /etc/yum.repos.d, so anaconda-iso's installer-content depsolve finds no
+# repos at all on F45/rawhide. Restore copies at the classic path so BIB
+# can see them; harmless no-op on distros that don't use the new location.
+tee -a Containerfile > /dev/null << EOF
+RUN cp /usr/share/dnf5/repos.d/*.repo /etc/yum.repos.d/ 2>/dev/null || true
+EOF
+
 # RHEL repo is always needed: Copr path uses it for dnf deps,
 # anaconda-iso BIB uses it for depsolve
 case "${ID}-${VERSION_ID}" in
