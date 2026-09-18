@@ -241,44 +241,50 @@ EOF
     fi
 fi
 
-# Listing greenboot as a blueprint package (version = "*") is not enough to
-# guarantee it comes from the intended source (Copr or compose): dnf always
-# installs the highest NEVRA across all enabled repos, and Copr snapshot
-# builds conventionally use a Release starting at "0.<timestamp>...", the
-# same convention official pre-GA/rebuilt packages use. Whenever
-# BaseOS/AppStream ships a greenboot release that outranks the build we
-# want, dnf silently installs the stock package instead. Pin the exact
-# version-release dnf resolves in the source repo so there is only one
-# candidate to resolve to, regardless of what other repos offer. (Verified:
-# neither `composer-cli sources add` nor a blueprint's
-# `[[customizations.repositories]]` priority/install_from affect depsolve at
-# build time -- those only shape the .repo files written into the resulting
-# image for its own future dnf use.)
+# osbuild/images hardcodes plain "greenboot"/"greenboot-default-health-checks"
+# as default packages for the CS9/RHEL9 edge-commit image type (see
+# data/distrodefs/rhel-9/imagetypes.yaml upstream). The weldr blueprint
+# schema has no way to exclude or override that default -- it can only add
+# more package requests -- so pinning our blueprint entry to an exact NEVR
+# creates a second, incompatible exact-version lock for the same package
+# name and dnf reports "cannot install both X and Y - conflicting requests".
+#
+# Instead, leave the blueprint entry unpinned (version = "*") so it's the
+# same kind of request as the image type's default, and let dnf pick the
+# single highest-EVR candidate across all enabled sources. Copr snapshot
+# builds always carry a large timestamp in the release (e.g.
+# 0.<timestamp>...), which reliably outranks the stock package's plain
+# "0.el9" release (verified with rpmdev-vercmp) -- unless CS9 ever ships a
+# timestamp-based rebuild of greenboot, our Copr build wins automatically.
+#
+# Still wait for Copr's repo metadata to actually be queryable before
+# starting the compose; composer-cli's own depsolve can otherwise run before
+# the just-added Copr source is ready.
 if [[ "${USE_COMPOSE_RPMS}" == true && -n "${GREENBOOT_PACKAGES_URL}" ]]; then
-    GREENBOOT_NEVR_LOOKUP_URL="http://127.0.0.1/packages/"
+    GREENBOOT_SOURCE_READY_URL="http://127.0.0.1/packages/"
 else
-    GREENBOOT_NEVR_LOOKUP_URL="${COPR_REPO_URL}"
+    GREENBOOT_SOURCE_READY_URL="${COPR_REPO_URL}"
 fi
 
-greenprint "Looking up exact greenboot NEVR to pin from ${GREENBOOT_NEVR_LOOKUP_URL}"
-GREENBOOT_NEVR=""
+greenprint "Waiting for greenboot source metadata to be ready at ${GREENBOOT_SOURCE_READY_URL}"
+GREENBOOT_EXPECTED_NVR=""
 for _ in $(seq 0 30); do
-    GREENBOOT_NEVR=$(sudo dnf repoquery \
-        --repofrompath="greenboot-nevr-lookup,${GREENBOOT_NEVR_LOOKUP_URL}" \
-        --disablerepo='*' --enablerepo=greenboot-nevr-lookup \
-        --quiet --qf '%{version}-%{release}' --latest-limit=1 greenboot || true)
-    if [ -n "$GREENBOOT_NEVR" ]; then
+    GREENBOOT_EXPECTED_NVR=$(sudo dnf repoquery \
+        --repofrompath="greenboot-source-ready,${GREENBOOT_SOURCE_READY_URL}" \
+        --disablerepo='*' --enablerepo=greenboot-source-ready \
+        --quiet --qf '%{name}-%{version}-%{release}' --latest-limit=1 greenboot || true)
+    if [ -n "$GREENBOOT_EXPECTED_NVR" ]; then
         break
     fi
-    greenprint "Copr metadata not ready yet, retrying NEVR lookup in 30s..."
+    greenprint "Copr metadata not ready yet, retrying in 30s..."
     sleep 30
 done
 
-if [ -z "$GREENBOOT_NEVR" ]; then
-    echo "Failed to resolve greenboot version-release from repo ${GREENBOOT_NEVR_LOOKUP_URL}"
+if [ -z "$GREENBOOT_EXPECTED_NVR" ]; then
+    echo "Failed to confirm greenboot source is ready at ${GREENBOOT_SOURCE_READY_URL}"
     exit 1
 fi
-greenprint "Pinning greenboot to build ${GREENBOOT_NEVR}"
+greenprint "Expecting depsolve to resolve greenboot to ${GREENBOOT_EXPECTED_NVR}"
 
 # Start firewalld
 greenprint "Start firewalld"
@@ -391,12 +397,23 @@ build_image() {
     sudo composer-cli blueprints push "$blueprint_file"
     sudo composer-cli blueprints depsolve "$blueprint_name" | tee /tmp/depsolve-output.txt
 
-    # Verify greenboot is being pulled from Copr (should have PR-specific NVR)
+    # Verify greenboot resolved to the expected Copr/compose NVR, not the
+    # distro's own default package. There's no way to exclude the distro
+    # default from the blueprint (see comment above GREENBOOT_EXPECTED_NVR),
+    # so this must be checked after the fact -- e.g. if a future mass
+    # rebuild ever gives the stock package a release that outranks ours
+    # (a leading release-digit bump beats our timestamp regardless of size,
+    # since rpm compares release segments left-to-right), depsolve would
+    # silently pick the stock package instead. Fail loudly if that happens
+    # rather than silently testing the wrong artifact.
     greenprint "🔍 Verifying greenboot source"
-    if grep -i "greenboot" /tmp/depsolve-output.txt; then
-        greenprint "✅ greenboot package found in depsolve output"
+    if grep -qi "${GREENBOOT_EXPECTED_NVR}" /tmp/depsolve-output.txt; then
+        greenprint "✅ greenboot resolved to expected build: ${GREENBOOT_EXPECTED_NVR}"
     else
-        greenprint "⚠️  greenboot not explicitly in depsolve (may be in base image)"
+        greenprint "❌ greenboot did NOT resolve to the expected build ${GREENBOOT_EXPECTED_NVR}"
+        greenprint "Resolved greenboot package(s) in depsolve output:"
+        grep -i "greenboot" /tmp/depsolve-output.txt || true
+        exit 1
     fi
 
     # Get worker unit file so we can watch the journal.
@@ -511,11 +528,11 @@ version = "*"
 
 [[packages]]
 name = "greenboot"
-version = "${GREENBOOT_NEVR}"
+version = "*"
 
 [[packages]]
 name = "greenboot-default-health-checks"
-version = "${GREENBOOT_NEVR}"
+version = "*"
 
 [customizations.services]
 enabled = ["greenboot-healthcheck.service", "greenboot-set-rollback-trigger.service", "greenboot-success.target"]
