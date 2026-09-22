@@ -188,6 +188,24 @@
               - result_rollback is succeeded
             fail_msg: "Rollback failed"
             success_msg: "Rollback success"
+
+        - name: diagnostic - list all boots since VM start
+          command: journalctl --list-boots
+          become: yes
+          register: result_diag_list_boots
+
+        - name: diagnostic - dump boot list
+          debug:
+            var: result_diag_list_boots.stdout_lines
+
+        - name: diagnostic - rpm-ostree status after reboot
+          command: rpm-ostree status
+          become: yes
+          register: result_diag_rpm_ostree_status
+
+        - name: diagnostic - dump rpm-ostree status
+          debug:
+            var: result_diag_rpm_ostree_status.stdout_lines
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
