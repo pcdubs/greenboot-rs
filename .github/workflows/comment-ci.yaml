@@ -41,6 +41,72 @@ jobs:
       repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url }}
       pr_number: ${{ github.event.issue.number }}
 
+  # Testing Farm jobs consume greenboot RPMs from this PR's Copr project,
+  # which persists across every push rather than being cleared between
+  # them. Without waiting for this exact commit's build, a job can silently
+  # pick up an older, already-succeeded build left over from a previous
+  # push instead of failing or waiting -- so each Testing Farm job below
+  # needs the wait job for the Copr chroot it actually consumes.
+  wait-fedora-44:
+    needs: check-pull-request
+    if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lewagon/wait-on-check-action@07b3e1aff439a8dcbe1df42d433fe8f3e5c1db8c # v1.9.1
+        with:
+          ref: ${{ needs.check-pull-request.outputs.sha }}
+          check-name: "rpm-build:fedora-44-x86_64"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+
+  wait-fedora-45:
+    needs: check-pull-request
+    if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lewagon/wait-on-check-action@07b3e1aff439a8dcbe1df42d433fe8f3e5c1db8c # v1.9.1
+        with:
+          ref: ${{ needs.check-pull-request.outputs.sha }}
+          check-name: "rpm-build:fedora-45-x86_64"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+
+  wait-fedora-rawhide:
+    needs: check-pull-request
+    if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lewagon/wait-on-check-action@07b3e1aff439a8dcbe1df42d433fe8f3e5c1db8c # v1.9.1
+        with:
+          ref: ${{ needs.check-pull-request.outputs.sha }}
+          check-name: "rpm-build:fedora-rawhide-x86_64"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+
+  wait-centos-stream-9:
+    needs: check-pull-request
+    if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lewagon/wait-on-check-action@07b3e1aff439a8dcbe1df42d433fe8f3e5c1db8c # v1.9.1
+        with:
+          ref: ${{ needs.check-pull-request.outputs.sha }}
+          check-name: "rpm-build:centos-stream-9-x86_64"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+
+  wait-centos-stream-10:
+    needs: check-pull-request
+    if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lewagon/wait-on-check-action@07b3e1aff439a8dcbe1df42d433fe8f3e5c1db8c # v1.9.1
+        with:
+          ref: ${{ needs.check-pull-request.outputs.sha }}
+          check-name: "rpm-build:centos-stream-10-x86_64"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+
   make-rpm:
     needs: check-pull-request
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
@@ -67,7 +133,7 @@ jobs:
         run: ls rpmbuild/RPMS/*/*.rpm
 
   centos-10-bootc:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-centos-stream-10]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -90,7 +156,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   fedora-44-bootc:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-fedora-44]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -113,7 +179,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   fedora-45-bootc:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-fedora-45]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -136,7 +202,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   fedora-rawhide-bootc:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-fedora-rawhide]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -159,7 +225,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   fedora-44-ostree:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-fedora-44]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -182,7 +248,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   fedora-45-ostree:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-fedora-45]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -205,7 +271,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   fedora-rawhide-ostree:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-fedora-rawhide]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -228,7 +294,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   centos-9-ostree:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-centos-stream-9]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -251,7 +317,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   rhel-9-8-ostree:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-centos-stream-9]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -274,7 +340,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   rhel-9-8-bootc:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-centos-stream-9]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -297,7 +363,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   rhel-9-9-ostree:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-centos-stream-9]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -320,7 +386,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   rhel-9-9-bootc:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-centos-stream-9]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -343,7 +409,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   rhel-10-2-bootc:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-centos-stream-10]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -366,7 +432,7 @@ jobs:
           secrets: "QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};STAGE_REDHAT_IO_USERNAME=${{ secrets.STAGE_REDHAT_IO_USERNAME }};STAGE_REDHAT_IO_TOKEN=${{ secrets.STAGE_REDHAT_IO_TOKEN }};DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }}"
 
   rhel-10-3-bootc:
-    needs: check-pull-request
+    needs: [check-pull-request, wait-centos-stream-10]
     if: ${{ needs.check-pull-request.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     permissions:
