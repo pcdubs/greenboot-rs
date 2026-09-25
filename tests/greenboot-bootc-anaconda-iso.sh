@@ -285,6 +285,12 @@ tee Containerfile > /dev/null << EOF
 FROM ${BASE_IMAGE_URL}
 EOF
 
+# F45 moved repo configs to /usr/share/dnf5/repos.d; BIB's depsolve only
+# checks the classic path. Restore copies there; no-op elsewhere.
+tee -a Containerfile > /dev/null << EOF
+RUN cp /usr/share/dnf5/repos.d/*.repo /etc/yum.repos.d/ 2>/dev/null || true
+EOF
+
 # RHEL repo is always needed: Copr path uses it for dnf deps,
 # anaconda-iso BIB uses it for depsolve
 case "${ID}-${VERSION_ID}" in
